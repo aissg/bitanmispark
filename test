@@ -1,0 +1,65 @@
+We have end of day prices for 50,000 different asset class (Ticker) for the past 20 years in a tabular form. 
+For example, one segment for one of the ticker
+
+Date	     Ticker 	 Price
+... ... ...
+10.01.2007   MSFT     12.84
+11.01.2007   MSFT     12.63
+12.01.2007   MSFT     24.67
+15.01.2007   MSFT     27.10
+16.01.2007   MSFT     28.63
+16.01.2007   MSFT     30.46
+31.01.2007   MSFT     34.40
+... ... ...
+
+Can you describe an algorithm to summarize the name of ticker and the month year, where the ticker price moved by more than 50% within the past one-month period? 
+
+What I am looking for:      
+Business Analysis: Unclear business statement: 
+1)	Candidate do not presume it’s the nature month. Ask question what does past one month period mean, a past one month is a rolling one month period can overlap two nature month.
+2)	Past months period indicate if previous month is Jan, March, May, July, August, October, December, the past month period is 31 days. If previous month is April, Jun, September, November, the past month is 30 days. If past month is February, the past month is 28 days or 29 days.
+3)	Price movement more than 50% indicates at any direction.  
+
+
+Algorithm: 
+Basic algorithm nr 1)
+Candidate gets points if the time series DF can be divided into a list of overlapping time window between 28 to 31 days depending on the previous month is 28, 29, 30 or 31 days. 
+In each time window DF, find max_price and max_date and min_price min_date 
+function is_movement_month (df)
+max_row = df.loc[df[‘Price’].idxmax()]
+max_price = max_row[‘Price’]
+max_date = max_row[‘Date]
+min_row = df.loc[df[‘Price’].idxmin()]
+min_price = min_row[‘Price’]
+min_date = min_row[‘Date’]
+
+if max_date <= min_date
+   if ((max_price / 2) >  min_price) 
+         return min_date.month
+else //max_date > min _date
+   if ((min_price * 2)  <  max_price) 
+         return max_date.month
+       return none
+The above algorthim is inefficient as the time window is only moving 1 days a time. so for 20 year, we will need to apply to above logic (365 -30) " 20 times. If the time complexity for search for min and max is O(n) we have 2 * O(n) for every function call. So overall time complexity is roughly 335 * 20 * 2 * O(n) = 13400 * O(n) for every ticker.
+
+
+A better algorithm
+Once a min and max is found for price, you can skip the next time window to the position having the start date to the first occuring min_date or max_date. i.e next_peak_trough_date
+def get_days_in_prev_month(date_str):
+    date = datetime.datetime.strptime(date_str, '%d.%m.%Y')
+    first_day = date.replace(day=1)
+    prev_month = first_day - datetime.timedelta(days=1)
+    return prev_month.day
+
+def get_next_dataframe(df, next_peak_trough_date):
+    index_start = df[df['Date'] == next_peak_trough_date].index[0]
+    sub_df = df.iloc[index_start:index_start+ def get_days_in_prev_month(next_peak_trough_date)]
+    return sub_df
+
+For a noramal distribution, the next peak trough happens on 30 days / 4, you can optomise the time compelxity of the algorith, to 1340 * O(n) / 4 = 3350 * O(n)
+
+A little more better algorithm
+Once a month is found, you no longer needs to check the rest of the month, you can shift the time window end date to the 1st day of the next month.  
+
+If candidate passes all stages, we can discuss the options using multiprocess package to distribute to different core or spark operations. 
+The interview is not about candidate to find the perfect answer, but his/her ability to think on the fly, and reason with different solutions. 
